@@ -5,7 +5,6 @@ import "./App.css";
 
 const suitSymbols = ["♤", "♡", "♢", "♧"];
 const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-
 const cardSymbols = [
   "🂡","🂢","🂣","🂤","🂥","🂦","🂧","🂨","🂩","🂪","🂫","🂭","🂮",
   "🂱","🂲","🂳","🂴","🂵","🂶","🂷","🂸","🂹","🂺","🂻","🂽","🂾",
@@ -45,14 +44,12 @@ function handValue(hand) {
   return total;
 }
 
-// Items
 const itemsList = [
   { name: "Extra Hit", description: "Hit without busting once per room" },
   { name: "Peek", description: "See dealer's hidden card" },
   { name: "Re-roll", description: "Swap a card once per room" },
 ];
 
-// Dealers
 const dealers = [
   {
     name: "Sneaky Sam",
@@ -93,17 +90,7 @@ const dealers = [
   {
     name: "Bold Betty",
     description: "Always hits to 19, ignores safe play.",
-    trick: (playerHand, dealerHand) => null
-  },
-  {
-    name: "Lucky Luke",
-    description: "Sometimes lets you draw an extra card without risk.",
-    trick: (playerHand, dealerHand) => null
-  },
-  {
-    name: "Greedy Greg",
-    description: "Takes extra gold from wins.",
-    trick: (playerHand, dealerHand) => null
+    trick: () => null
   },
   {
     name: "Shifty Sharon",
@@ -115,24 +102,9 @@ const dealers = [
       return null;
     }
   },
-  {
-    name: "Paranoid Pete",
-    description: "Checks for blackjack early.",
-    trick: (playerHand, dealerHand) => null
-  },
-  {
-    name: "Aggressive Amy",
-    description: "Hits aggressively when losing.",
-    trick: (playerHand, dealerHand, deck) => null
-  },
-  {
-    name: "Sneaky Steve",
-    description: "Hides his second card longer.",
-    trick: (playerHand, dealerHand) => null
-  },
 ];
 
-export default function App() {
+export default function BlackjackGame({ onPause, onQuit }) {
   const [deck, setDeck] = useState(shuffle(createDeck()));
   const [player, setPlayer] = useState({
     hand: [],
@@ -147,11 +119,11 @@ export default function App() {
   const [message, setMessage] = useState("Welcome to Blackjack Roguelike!");
   const [currentRoom, setCurrentRoom] = useState(1);
   const [roomEvent, setRoomEvent] = useState("");
-  // Deal first room automatically
+
   useEffect(() => {
     deal();
   }, []);
-  // Deal a new room
+
   const deal = () => {
     const d = shuffle(createDeck());
     const dealerPick = dealers[Math.floor(Math.random() * dealers.length)];
@@ -165,7 +137,6 @@ export default function App() {
     setDeck(d);
     setStandTriggered(false);
 
-    // Random room event
     const eventRoll = Math.random();
     if (eventRoll < 0.25) {
       const gold = Math.floor(Math.random() * 10 + 5);
@@ -192,7 +163,6 @@ export default function App() {
     setDeck(newDeck);
     setPlayer(prev => ({ ...prev, hand: newHand }));
 
-    // Dealer trick
     if (currentDealer && currentDealer.trick) {
       const trickResult = currentDealer.trick(newHand, dealer, newDeck);
       if (trickResult) {
@@ -275,19 +245,19 @@ export default function App() {
     <div className="app">
       <div className="sidebar">
         <h2>Room Info</h2>
-        <p className="stats-item">Room: {currentRoom}</p>
-        <p className="stats-item">Health: {player.health}</p>
-        <p className="stats-item">Gold: {player.gold}</p>
-        <p className="stats-item">Items: {player.items.map(i => i.name).join(", ") || "None"}</p>
+        <p>Room: {currentRoom}</p>
+        <p>Health: {player.health}</p>
+        <p>Gold: {player.gold}</p>
+        <p>Items: {player.items.map(i => i.name).join(", ") || "None"}</p>
 
         {currentDealer && (
           <>
-            <p className="stats-item">Dealer: {currentDealer.name}</p>
-            <p className="stats-item"><em>{currentDealer.description}</em></p>
+            <p>Dealer: {currentDealer.name}</p>
+            <p><em>{currentDealer.description}</em></p>
           </>
         )}
 
-        {roomEvent && <p className="event-item">Event: {roomEvent}</p>}
+        {roomEvent && <p className="event">{roomEvent}</p>}
       </div>
 
       <div className="table">
@@ -296,12 +266,13 @@ export default function App() {
 
         <h2>Dealer ({standTriggered ? handValue(dealer) : "?"})</h2>
         <div className="cards">
-          {dealer.map((card, i) => {
-            if (!standTriggered && i === 1) {
-              return <div key={i} className="card back">🂠</div>;
-            }
-            return <Card key={i} {...card} />;
-          })}
+          {dealer.map((card, i) =>
+            !standTriggered && i === 1 ? (
+              <div key={i} className="card back">🂠</div>
+            ) : (
+              <Card key={i} {...card} />
+            )
+          )}
         </div>
 
         <h2>You ({handValue(player.hand)})</h2>
@@ -313,6 +284,8 @@ export default function App() {
           <button onClick={deal}>Deal</button>
           <button onClick={hit} disabled={!player.hand.length}>Hit</button>
           <button onClick={stand} disabled={!player.hand.length}>Stand</button>
+          <button onClick={onPause}>Pause</button>
+          <button onClick={onQuit}>Quit</button>
           {player.items.map((item, i) => (
             <button key={i} onClick={() => handleUseItem(item)} disabled={player.usedItem === item.name}>
               Use {item.name}
